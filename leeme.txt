@@ -1,0 +1,56 @@
+Pruebas de Integración de Flujo Completo: Simular transacciones de punta a punta: Onboarding -> Generación de QR -> Simulación de Callback de Banco Unión -> Disparo de Webhook -> Cierre y conciliación diaria.
+Definir Esquemas RBAC: Diseñar roles y permisos para administradores de la pasarela y operadores.
+
+
+
+---------------------------------------
+
+Para levantar e integrar todo el ecosistema de la pasarela de pagos y realizar una simulación transaccional completa (desde el registro del comercio hasta la conciliación diaria), sigue estos tres sencillos pasos:
+
+Paso 1: Levantar la Infraestructura Base (Redis, Vault, Kong)
+Dado que tu daemon de Docker requiere permisos administrativos en tu entorno, inicia los contenedores usando sudo:
+
+Iniciar contenedores en segundo plano:
+bash
+sudo docker compose up -d
+Inicializar secretos en Vault:
+bash
+sudo ./scripts/init-vault.sh
+Paso 2: Iniciar los Microservicios locales
+Abre cuatro terminales adicionales en el directorio raíz (/home/ivan.callapa/pruebas/pasarela-pagos) y ejecuta cada microservicio:
+
+Terminal 1 (Merchant Service):
+bash
+export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+npm run start:dev merchant-service
+Terminal 2 (Transaction Service):
+bash
+export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+npm run start:dev transaction-service
+Terminal 3 (Webhook Service):
+bash
+export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+npm run start:dev webhook-service
+Terminal 4 (Settlement Service):
+bash
+export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+npm run start:dev settlement-service
+Paso 3: Probar la Funcionalidad Completa
+He creado un script automatizado en Node.js (
+
+scripts/test-flow.js
+) que ejecutará la prueba de integración de punta a punta.
+
+En otra terminal, ejecuta el script:
+
+bash
+export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+node scripts/test-flow.js
+¿Qué validará este script?
+Onboarding del Comercio: Registrará un comercio con esquema de comisión mixta (1.2% + 0.80 BOB) y obtendrá su API Key generada.
+Elevación de Privilegios: Modificará automáticamente el rol de la API Key en PostgreSQL a 'admin' para autorizar la conciliación.
+Generación de QR: Solicitará un pago QR encriptado de 150.00 BOB validando la idempotencia en Redis.
+Callback del Banco: Simulará que el Banco Unión notifica el pago como exitoso.
+Logs de Auditoría y Webhooks: Verificará los logs de eventos de la transacción y el reintento de envío de webhook (fallido, ya que no hay un servidor real escuchando en el puerto ficticio del comercio).
+Cierre de Conciliación: Ejecutará el proceso diario de clearing calculando la comisión exacta (1.2% de 150 = 1.80 BOB + 0.80 fijo = 2.60 BOB de comisión) y liquidando un neto de 147.40 BOB al comercio.
+Reporte: Consultará el reporte consolidado del día en formato JSON.

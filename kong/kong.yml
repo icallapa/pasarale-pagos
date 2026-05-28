@@ -5,19 +5,21 @@ services:
   - name: merchant-service
     url: http://host.docker.internal:3001
     routes:
-      - name: merchant-routes
+      - name: merchant-public-routes
         paths:
           - /v1/merchants
+        strip_path: false
+      - name: merchant-private-routes
+        paths:
           - /v1/merchants/me
           - /v1/merchants/me/webhook
           - /v1/merchants/me/api-keys/rotate
-        strip_path: false
-    plugins:
-      - name: key-auth
-        config:
-          key_names:
-            - X-Api-Key
-          hide_credentials: true
+        plugins:
+          - name: key-auth
+            config:
+              key_names:
+                - X-Api-Key
+              hide_credentials: true
 
   - name: transaction-service
     url: http://host.docker.internal:3002
