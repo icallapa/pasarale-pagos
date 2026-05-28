@@ -1,0 +1,74 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: merchant-service
+    url: http://host.docker.internal:3001
+    routes:
+      - name: merchant-routes
+        paths:
+          - /v1/merchants
+          - /v1/merchants/me
+          - /v1/merchants/me/webhook
+          - /v1/merchants/me/api-keys/rotate
+        strip_path: false
+    plugins:
+      - name: key-auth
+        config:
+          key_names:
+            - X-Api-Key
+          hide_credentials: true
+
+  - name: transaction-service
+    url: http://host.docker.internal:3002
+    routes:
+      - name: transaction-routes
+        paths:
+          - /v1/payments
+        strip_path: false
+    plugins:
+      - name: key-auth
+        config:
+          key_names:
+            - X-Api-Key
+          hide_credentials: true
+      - name: rate-limiting
+        config:
+          minute: 100
+          policy: local
+          limit_by: header
+          header_name: X-Api-Key
+
+  - name: webhook-service
+    url: http://host.docker.internal:3003
+    routes:
+      - name: webhook-routes
+        paths:
+          - /v1/webhooks
+        strip_path: false
+    plugins:
+      - name: key-auth
+        config:
+          key_names:
+            - X-Api-Key
+          hide_credentials: true
+
+  - name: settlement-service
+    url: http://host.docker.internal:3004
+    routes:
+      - name: settlement-routes
+        paths:
+          - /v1/settlements
+        strip_path: false
+    plugins:
+      - name: key-auth
+        config:
+          key_names:
+            - X-Api-Key
+          hide_credentials: true
+
+# Configuración de Consumidores de Prueba para modo DB-less
+consumers:
+  - username: merchant-piloto
+    keyauth_credentials:
+      - key: "f47ac10b-58cc-4372-a567-0e02b2c3d479.a8b9c1d2e3f4g5h6"
